@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>經典貪食蛇遊戲</title>
+  <style>
+    /* 基礎重設與主題顏色 - Google 貪食蛇卡通草地風格 */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #3f6826;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 16px;
+      overflow-x: hidden;
+      letter-spacing: 0.03em;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* 頂部綠色頂欄與分數區 */
+    header {
+      text-align: center;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      color: #ffffff;
+      margin-bottom: 6px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .score-board {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      background-color: #4a752c;
+      padding: 10px 18px;
+      border-radius: 8px 8px 0 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #ffffff;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    }
+
+    .score-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .score-icon {
+      font-size: 1.3rem;
+      line-height: 1;
+    }
+
+    .score-item span {
+      color: #ffffff;
+      font-size: 1.25rem;
+      font-weight: 800;
+    }
+
+    /* 遊戲畫布容器 */
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      max-width: 450px;
+      background-color: #aad751;
+      border-radius: 0 0 8px 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 遮罩面板 (設定 / 遊戲結束 / 操作說明) */
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(74, 117, 44, 0.95);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 18px 16px;
+      text-align: center;
+      z-index: 10;
+      backdrop-filter: blur(4px);
+      overflow-y: auto;
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    .overlay h2 {
+      font-size: 1.4rem;
+      color: #ffffff;
+      margin-bottom: 6px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .overlay p {
+      font-size: 0.88rem;
+      color: #e2f0d9;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    /* 設定表單 */
+    .config-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 340px;
+      text-align: left;
+      background-color: #5b8e37;
+      padding: 14px 16px;
+      border-radius: 8px;
+      border: 2px solid #3f6826;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .form-section-title {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: #ffffff;
+      border-bottom: 2px solid #4a752c;
+      padding-bottom: 4px;
+      margin-bottom: 2px;
+      letter-spacing: 0.05em;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-group label {
+      font-size: 0.82rem;
+      color: #f0f7ec;
+      font-weight: 600;
+    }
+
+    .form-group input, .form-group select {
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid #3f6826;
+      background-color: #ffffff;
+      color: #2c471a;
+      font-size: 0.9rem;
+      font-weight: 600;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .color-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .color-picker-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #ffffff;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #3f6826;
+    }
+
+    .color-picker-item label {
+      font-size: 0.8rem;
+      color: #2c471a;
+      font-weight: 700;
+    }
+
+    .color-picker-item input[type="color"] {
+      -webkit-appearance: none;
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      cursor: pointer;
+      background: transparent;
+      padding: 0;
+    }
+
+    .color-picker-item input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    .color-picker-item input[type="color"]::-webkit-color-swatch {
+      border: 1px solid #cccccc;
+      border-radius: 4px;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      border-color: #f7b731;
+      box-shadow: 0 0 0 2px rgba(247, 183, 49, 0.4);
+    }
+
+    .error-msg {
+      color: #ffdd59;
+      font-size: 0.85rem;
+      min-height: 1.2em;
+      text-align: center;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    /* 按鈕樣式 */
+    .btn {
+      background-color: #1572e8;
+      color: #ffffff;
+      border: none;
+      padding: 10px 28px;
+      font-size: 1rem;
+      font-weight: 800;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: transform 0.1s, background-color 0.2s;
+      min-width: 140px;
+      letter-spacing: 0.05em;
+      box-shadow: 0 4px 0 #0d47a1;
+    }
+
+    .btn:hover {
+      background-color: #1366d6;
+    }
+
+    .btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #0d47a1;
+    }
+
+    /* 手機虛擬遙控器 */
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 8px;
+      width: 100%;
+      max-width: 220px;
+      height: 220px;
+      margin-top: 6px;
+    }
+
+    .d-btn {
+      background-color: #4a752c;
+      border: 2px solid #5b8e37;
+      color: #ffffff;
+      border-radius: 12px;
+      font-size: 1.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: manipulation;
+      box-shadow: 0 3px 0 #2c471a;
+      transition: background-color 0.1s, transform 0.1s;
+    }
+
+    .d-btn:active {
+      background-color: #1572e8;
+      border-color: #1366d6;
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #0d47a1;
+    }
+
+    .d-up { grid-column: 2; grid-row: 1; }
+    .d-left { grid-column: 1; grid-row: 2; }
+    .d-right { grid-column: 3; grid-row: 2; }
+    .d-down { grid-column: 2; grid-row: 3; }
+
+    /* 操作說明區塊 */
+    .instructions {
+      font-size: 0.85rem;
+      color: #c0dfab;
+      text-align: center;
+      margin-top: 2px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>Google 風格 貪食蛇</h1>
+    </header>
+
+    <div class="score-board">
+      <div class="score-item">
+        <span class="score-icon">🍎</span>
+        <span id="current-score">0</span>
+      </div>
+      <div class="score-item">
+        <span style="font-size:0.9rem; opacity:0.9;">蛇長：</span>
+        <span id="current-length">0</span>
+      </div>
+    </div>
+
+    <div class="canvas-wrapper">
+      <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+      <!-- 開始與設定畫面 -->
+      <div id="startOverlay" class="overlay">
+        <h2>遊戲設定</h2>
+        <p>請完成設定即可開始遊戲<br><small>桌機：WASD / 方向鍵 | 手機：觸控按鈕</small></p>
+
+        <div class="config-form">
+          <div class="form-section-title">遊戲規則</div>
+          <div class="form-group">
+            <label for="initLength">初始蛇長 (正整數 1 ~ 300)：</label>
+            <input type="number" id="initLength" min="1" max="300" placeholder="例如：3">
+          </div>
+
+          <div class="form-group">
+            <label for="initDirection">初始方向：</label>
+            <select id="initDirection">
+              <option value="" disabled selected>請選擇初始方向</option>
+              <option value="RIGHT">向右</option>
+              <option value="LEFT">向左</option>
+              <option value="UP">向上</option>
+              <option value="DOWN">向下</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="foodScore">每個食物分數 (非負整數)：</label>
+            <input type="number" id="foodScore" min="0" placeholder="例如：10">
+          </div>
+
+          <div class="form-group">
+            <label for="growAmount">每餐增長格數 (正整數)：</label>
+            <input type="number" id="growAmount" min="1" placeholder="例如：1">
+          </div>
+
+          <div class="form-section-title" style="margin-top: 4px;">色彩設定</div>
+          <div class="color-grid">
+            <div class="color-picker-item">
+              <label for="bgColor">草地背景</label>
+              <input type="color" id="bgColor" value="#aad751">
+            </div>
+            <div class="color-picker-item">
+              <label for="headColor">蛇頭顏色</label>
+              <input type="color" id="headColor" value="#4674e9">
+            </div>
+            <div class="color-picker-item">
+              <label for="bodyColor">蛇身顏色</label>
+              <input type="color" id="bodyColor" value="#4674e9">
+            </div>
+            <div class="color-picker-item">
+              <label for="foodColor">食物顏色</label>
+              <input type="color" id="foodColor" value="#e74c3c">
+            </div>
+          </div>
+        </div>
+
+        <div id="errorMsg" class="error-msg"></div>
+        <button id="startBtn" class="btn">開始遊戲</button>
+      </div>
+
+      <!-- 遊戲結束畫面 -->
+      <div id="gameOverOverlay" class="overlay hidden" style="justify-content: center;">
+        <h2>遊戲結束</h2>
+        <p>最終得分：<span id="finalScore" style="color: #ffdd59; font-weight: bold; font-size: 1.3rem;">0</span></p>
+        <p>最終長度：<span id="finalLength" style="color: #ffffff; font-weight: bold; font-size: 1.2rem;">0</span></p>
+        <button id="restartBtn" class="btn" style="margin-top:10px;">重新開始</button>
+      </div>
+    </div>
+
+    <!-- 虛擬按鍵 (觸控專用) -->
+    <div class="controls">
+      <button class="d-btn d-up" id="btnUp" aria-label="向上">▲</button>
+      <button class="d-btn d-left" id="btnLeft" aria-label="向左">◄</button>
+      <button class="d-btn d-right" id="btnRight" aria-label="向右">►</button>
+      <button class="d-btn d-down" id="btnDown" aria-label="向下">▼</button>
+    </div>
+
+    <div class="instructions">
+      桌機可用 WASD 或 方向鍵控制移動
+    </div>
+  </div>
+
+  <script>
+    // 常數設定
+    const GRID_SIZE = 20; // 20x20 格子棋盤
+    const CANVAS_SIZE = 400;
+    const CELL_SIZE = CANVAS_SIZE / GRID_SIZE; // 每格 20px
+    const GAME_SPEED = 120; // 遊戲更新頻率 (ms)
+
+    // DOM 元素引用
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const startOverlay = document.getElementById('startOverlay');
+    const gameOverOverlay = document.getElementById('gameOverOverlay');
+    const errorMsg = document.getElementById('errorMsg');
+
+    const initLengthInput = document.getElementById('initLength');
+    const initDirectionSelect = document.getElementById('initDirection');
+    const foodScoreInput = document.getElementById('foodScore');
+    const growAmountInput = document.getElementById('growAmount');
+
+    const bgColorInput = document.getElementById('bgColor');
+    const headColorInput = document.getElementById('headColor');
+    const bodyColorInput = document.getElementById('bodyColor');
+    const foodColorInput = document.getElementById('foodColor');
+
+    const currentScoreEl = document.getElementById('current-score');
+    const currentLengthEl = document.getElementById('current-length');
+    const finalScoreEl = document.getElementById('finalScore');
+    const finalLengthEl = document.getElementById('finalLength');
+
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+
+    // 遊戲狀態變數
+    let snake = [];
+    let direction = 'RIGHT';
+    let nextDirection = 'RIGHT';
+    let food = { x: 0, y: 0 };
+    let score = 0;
+    let pendingGrow = 0;
+    let gameInterval = null;
+    let isGameRunning = false;
+
+    // 玩家設定紀錄 (預設採用 Google 貪食蛇色彩風格)
+    let config = {
+      initLength: 3,
+      initDirection: 'RIGHT',
+      foodScore: 10,
+      growAmount: 1,
+      bgColor: '#aad751',
+      headColor: '#4674e9',
+      bodyColor: '#4674e9',
+      foodColor: '#e74c3c'
+    };
+
+    // 輔助函式：計算 HEX 顏色的亮度
+    function getLuminance(hexColor) {
+      const hex = hexColor.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16) || 0;
+      const g = parseInt(hex.substring(2, 4), 16) || 0;
+      const b = parseInt(hex.substring(4, 6), 16) || 0;
+      return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    }
+
+    // 輔助函式：調暗/調亮顏色（用於生成棋盤雙色草地）
+    function adjustColor(hex, percent) {
+      const num = parseInt(hex.replace('#', ''), 16);
+      const amt = Math.round(2.55 * percent);
+      const R = (num >> 16) + amt;
+      const G = (num >> 8 & 0x00FF) + amt;
+      const B = (num & 0x0000FF) + amt;
+      return '#' + (0x1000000 + (R < 255 ? R < 0 ? 0 : R : 255) * 0x10000 + (G < 255 ? G < 0 ? 0 : G : 255) * 0x100 + (B < 255 ? B < 0 ? 0 : B : 255)).toString(16).slice(1);
+    }
+
+    // 初始化事件監聽
+    function initEvents() {
+      startBtn.addEventListener('click', validateAndStartGame);
+      restartBtn.addEventListener('click', restartGame);
+
+      // 鍵盤控制
+      window.addEventListener('keydown', handleKeyDown);
+
+      // 觸控按鈕控制
+      document.getElementById('btnUp').addEventListener('click', () => setDirection('UP'));
+      document.getElementById('btnDown').addEventListener('click', () => setDirection('DOWN'));
+      document.getElementById('btnLeft').addEventListener('click', () => setDirection('LEFT'));
+      document.getElementById('btnRight').addEventListener('click', () => setDirection('RIGHT'));
+
+      // 防止畫面雙擊放大或滑動干擾
+      document.querySelectorAll('.d-btn').forEach(btn => {
+        btn.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          btn.click();
+        }, { passive: false });
+      });
+    }
+
+    // 鍵盤觸發轉向
+    function handleKeyDown(e) {
+      if (!isGameRunning) return;
+      
+      switch (e.key) {
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+          setDirection('UP');
+          break;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+          setDirection('DOWN');
+          break;
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+          setDirection('LEFT');
+          break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+          setDirection('RIGHT');
+          break;
+      }
+    }
+
+    // 方向設定（防止反向自殺）
+    function setDirection(newDir) {
+      if (!isGameRunning) return;
+
+      const isOpposite = (
+        (newDir === 'UP' && direction === 'DOWN') ||
+        (newDir === 'DOWN' && direction === 'UP') ||
+        (newDir === 'LEFT' && direction === 'RIGHT') ||
+        (newDir === 'RIGHT' && direction === 'LEFT')
+      );
+
+      if (!isOpposite) {
+        nextDirection = newDir;
+      }
+    }
+
+    function validateAndStartGame() {
+      errorMsg.textContent = '';
+
+      const lenVal = initLengthInput.value.trim();
+      const dirVal = initDirectionSelect.value;
+      const scoreVal = foodScoreInput.value.trim();
+      const growVal = growAmountInput.value.trim();
+
+      // 檢查缺失欄位
+      if (lenVal === '' || !dirVal || scoreVal === '' || growVal === '') {
+        errorMsg.textContent = '請完整填寫所有設定項目！';
+        return;
+      }
+
+      const parsedLen = parseInt(lenVal, 10);
+      const parsedScore = parseInt(scoreVal, 10);
+      const parsedGrow = parseInt(growVal, 10);
+
+      // 檢查格式與邏輯
+      if (isNaN(parsedLen) || parsedLen <= 0) {
+        errorMsg.textContent = '初始蛇長必須為正整數！';
+        return;
+      }
+
+      const totalCells = GRID_SIZE * GRID_SIZE;
+      if (parsedLen > totalCells - 1) {
+        errorMsg.textContent = `初始蛇長過大，棋盤無法容納（最多 ${totalCells - 1} 格）！`;
+        return;
+      }
+
+      if (isNaN(parsedScore) || parsedScore < 0) {
+        errorMsg.textContent = '食物分數必須為非負整數（0 或正整數）！';
+        return;
+      }
+
+      if (isNaN(parsedGrow) || parsedGrow <= 0) {
+        errorMsg.textContent = '增長格數必須為正整數！';
+        return;
+      }
+
+      // 儲存設定（包含色彩設定）
+      config.initLength = parsedLen;
+      config.initDirection = dirVal;
+      config.foodScore = parsedScore;
+      config.growAmount = parsedGrow;
+
+      config.bgColor = bgColorInput.value || '#aad751';
+      config.headColor = headColorInput.value || '#4674e9';
+      config.bodyColor = bodyColorInput.value || '#4674e9';
+      config.foodColor = foodColorInput.value || '#e74c3c';
+
+      // 隱藏設定面板並開局
+      startOverlay.classList.add('hidden');
+      startGame();
+    }
+
+    // 開啟/重設遊戲
+    function startGame() {
+      // 確保停止之前的定時器，防止速度越來越快
+      if (gameInterval) {
+        clearInterval(gameInterval);
+        gameInterval = null;
+      }
+
+      score = 0;
+      pendingGrow = 0;
+      direction = config.initDirection;
+      nextDirection = config.initDirection;
+      isGameRunning = true;
+
+      updateScoreUI();
+
+      // 計算蛇的初始位置 (盡量放置於棋盤中央並延伸)
+      snake = [];
+      let headX = Math.floor(GRID_SIZE / 2);
+      let headY = Math.floor(GRID_SIZE / 2);
+
+      // 根據初始方向反向延伸身體，確保頭部位置安全
+      let dx = 0, dy = 0;
+      if (direction === 'RIGHT') dx = -1;
+      else if (direction === 'LEFT') dx = 1;
+      else if (direction === 'UP') dy = 1;
+      else if (direction === 'DOWN') dy = -1;
+
+      // 若蛇太長，修正頭部起點，避免初始化即撞牆
+      if (direction === 'RIGHT') headX = Math.max(config.initLength - 1, headX);
+      if (direction === 'LEFT') headX = Math.min(GRID_SIZE - config.initLength, headX);
+      if (direction === 'DOWN') headY = Math.max(config.initLength - 1, headY);
+      if (direction === 'UP') headY = Math.min(GRID_SIZE - config.initLength, headY);
+
+      for (let i = 0; i < config.initLength; i++) {
+        snake.push({
+          x: headX + i * dx,
+          y: headY + i * dy
+        });
+      }
+
+      spawnFood();
+      draw();
+
+      // 開啟遊戲主迴圈
+      gameInterval = setInterval(gameLoop, GAME_SPEED);
+    }
+
+    // 重新開始
+    function restartGame() {
+      gameOverOverlay.classList.add('hidden');
+      startGame();
+    }
+
+    // 遊戲主迴圈
+    function gameLoop() {
+      update();
+      if (isGameRunning) {
+        draw();
+      }
+    }
+
+    // 狀態更新
+    function update() {
+      direction = nextDirection;
+
+      // 計算新蛇頭位置
+      const head = { ...snake[0] };
+      if (direction === 'UP') head.y -= 1;
+      else if (direction === 'DOWN') head.y += 1;
+      else if (direction === 'LEFT') head.x -= 1;
+      else if (direction === 'RIGHT') head.x += 1;
+
+      // 1. 撞牆檢測
+      if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
+        handleGameOver();
+        return;
+      }
+
+      // 2. 撞自身檢測
+      // 若蛇即將移動且沒有增長，尾巴會移開，因此尾端最後一格不會造成碰撞
+      const willGrow = (head.x === food.x && head.y === food.y) || pendingGrow > 0;
+      const checkBody = willGrow ? snake : snake.slice(0, -1);
+      
+      if (checkBody.some(segment => segment.x === head.x && segment.y === head.y)) {
+        handleGameOver();
+        return;
+      }
+
+      // 蛇向前移動
+      snake.unshift(head);
+
+      // 3. 吃到食物檢測
+      if (head.x === food.x && head.y === food.y) {
+        score += config.foodScore;
+        pendingGrow += config.growAmount;
+        spawnFood();
+      }
+
+      // 處理解算增長或縮減尾巴
+      if (pendingGrow > 0) {
+        pendingGrow--;
+      } else {
+        snake.pop();
+      }
+
+      updateScoreUI();
+    }
+
+    // 生成食物 (保證不落於蛇身上)
+    function spawnFood() {
+      const emptyCells = [];
+
+      for (let x = 0; x < GRID_SIZE; x++) {
+        for (let y = 0; y < GRID_SIZE; y++) {
+          const isSnake = snake.some(s => s.x === x && s.y === y);
+          if (!isSnake) {
+            emptyCells.push({ x, y });
+          }
+        }
+      }
+
+      if (emptyCells.length === 0) {
+        // 棋盤已被完全填滿，遊戲通關勝利
+        handleGameOver(true);
+        return;
+      }
+
+      const randomIndex = Math.floor(Math.random() * emptyCells.length);
+      food = emptyCells[randomIndex];
+    }
+
+    // 更新分數 UI
+    function updateScoreUI() {
+      currentScoreEl.textContent = score;
+      currentLengthEl.textContent = snake.length;
+    }
+
+    // 遊戲結束處理
+    function handleGameOver(isWin = false) {
+      isGameRunning = false;
+      if (gameInterval) {
+        clearInterval(gameInterval);
+        gameInterval = null;
+      }
+
+      finalScoreEl.textContent = score;
+      finalLengthEl.textContent = snake.length;
+
+      const titleEl = gameOverOverlay.querySelector('h2');
+      if (isWin) {
+        titleEl.textContent = '恭喜通關！完美填滿！';
+        titleEl.style.color = '#ffdd59';
+      } else {
+        titleEl.textContent = '遊戲結束！';
+        titleEl.style.color = '#ffffff';
+      }
+
+      gameOverOverlay.classList.remove('hidden');
+    }
+
+    function draw() {
+      // 1. 繪製 Google 貪食蛇風格的草地雙色交錯棋盤格
+      const color1 = config.bgColor;
+      const color2 = adjustColor(config.bgColor, -4); // 生成稍微深一點的相間綠色
+
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          ctx.fillStyle = (r + c) % 2 === 0 ? color1 : color2;
+          ctx.fillRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        }
+      }
+
+      // 2. 繪製立體紅蘋果食物 (帶綠葉與果蒂)
+      const foodCenterX = food.x * CELL_SIZE + CELL_SIZE / 2;
+      const foodCenterY = food.y * CELL_SIZE + CELL_SIZE / 2;
+      const radius = CELL_SIZE / 2 - 2;
+
+      // 蘋果本體
+      ctx.fillStyle = config.foodColor;
+      ctx.beginPath();
+      ctx.arc(foodCenterX, foodCenterY + 1, radius - 1, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 蘋果頂部高光細節
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.beginPath();
+      ctx.arc(foodCenterX - 3, foodCenterY - 3, radius / 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 蘋果果蒂 (棕色)
+      ctx.strokeStyle = '#5d4037';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(foodCenterX, foodCenterY - radius + 2);
+      ctx.quadraticCurveTo(foodCenterX + 2, foodCenterY - radius - 2, foodCenterX + 3, foodCenterY - radius - 4);
+      ctx.stroke();
+
+      // 蘋果葉子 (綠色)
+      ctx.fillStyle = '#2e7d32';
+      ctx.beginPath();
+      ctx.ellipse(foodCenterX + 4, foodCenterY - radius - 2, 4, 2, Math.PI / 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 3. 繪製 Google 風格的藍色大眼蛇
+      snake.forEach((segment, index) => {
+        const x = segment.x * CELL_SIZE;
+        const y = segment.y * CELL_SIZE;
+
+        if (index === 0) {
+          // 蛇頭 (繪製平滑圓角)
+          ctx.fillStyle = config.headColor;
+          ctx.beginPath();
+          ctx.roundRect(x + 1, y + 1, CELL_SIZE - 2, CELL_SIZE - 2, 8);
+          ctx.fill();
+
+          // 繪製伸出的吐舌頭 (紅黃色)
+          ctx.fillStyle = '#e74c3c';
+          ctx.beginPath();
+          let tongueX = x + CELL_SIZE / 2;
+          let tongueY = y + CELL_SIZE / 2;
+          
+          if (direction === 'RIGHT') {
+            ctx.fillRect(x + CELL_SIZE - 1, y + CELL_SIZE / 2 - 2, 6, 4);
+          } else if (direction === 'LEFT') {
+            ctx.fillRect(x - 5, y + CELL_SIZE / 2 - 2, 6, 4);
+          } else if (direction === 'UP') {
+            ctx.fillRect(x + CELL_SIZE / 2 - 2, y - 5, 4, 6);
+          } else if (direction === 'DOWN') {
+            ctx.fillRect(x + CELL_SIZE / 2 - 2, y + CELL_SIZE - 1, 4, 6);
+          }
+
+          // 繪製 Google 經典圓潤雙大眼 (白底 + 黑瞳孔)
+          let eyeX1, eyeY1, eyeX2, eyeY2;
+          const eyeOffset = 6;
+          const eyeRadius = 3.5;
+          const pupilRadius = 1.8;
+
+          if (direction === 'RIGHT') {
+            eyeX1 = eyeX2 = x + CELL_SIZE - eyeOffset;
+            eyeY1 = y + eyeOffset - 1;
+            eyeY2 = y + CELL_SIZE - eyeOffset + 1;
+          } else if (direction === 'LEFT') {
+            eyeX1 = eyeX2 = x + eyeOffset;
+            eyeY1 = y + eyeOffset - 1;
+            eyeY2 = y + CELL_SIZE - eyeOffset + 1;
+          } else if (direction === 'UP') {
+            eyeY1 = eyeY2 = y + eyeOffset;
+            eyeX1 = x + eyeOffset - 1;
+            eyeX2 = x + CELL_SIZE - eyeOffset + 1;
+          } else { // DOWN
+            eyeY1 = eyeY2 = y + CELL_SIZE - eyeOffset;
+            eyeX1 = x + eyeOffset - 1;
+            eyeX2 = x + CELL_SIZE - eyeOffset + 1;
+          }
+
+          // 畫眼白
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(eyeX1, eyeY1, eyeRadius, 0, Math.PI * 2);
+          ctx.arc(eyeX2, eyeY2, eyeRadius, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 畫黑色瞳孔
+          ctx.fillStyle = '#111111';
+          ctx.beginPath();
+          ctx.arc(eyeX1, eyeY1, pupilRadius, 0, Math.PI * 2);
+          ctx.arc(eyeX2, eyeY2, pupilRadius, 0, Math.PI * 2);
+          ctx.fill();
+
+        } else {
+          // 蛇身 (簡潔圓潤藍色方塊，帶微縮邊)
+          ctx.fillStyle = config.bodyColor;
+          ctx.beginPath();
+          ctx.roundRect(x + 1.5, y + 1.5, CELL_SIZE - 3, CELL_SIZE - 3, 5);
+          ctx.fill();
+        }
+      });
+    }
+
+    // 初始化頁面
+    window.onload = () => {
+      initEvents();
+    };
+  </script>
+</body>
+</html>
